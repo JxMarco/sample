@@ -33,7 +33,11 @@ class UsersController extends Controller
 
     public function show(User $user)
     {
-        return view('users.show', compact('user'));
+        $statuses = $user->statuses()
+                        ->orderBy('created_at', 'desc')
+                        ->paginate(30);
+
+        return view('users.show', compact('user', 'statuses'));
     }
 
     public function store(Request $request)
@@ -60,14 +64,14 @@ class UsersController extends Controller
         try {
             $this->authorize('update', $user);
             return view('users.edit', compact('user'));
-        } catch (\Exception $e){
+        } catch (\Exception $e) {
             abort(500, $e->getMessage());
         }
     }
 
     public function update(User $user, Request $request)
     {
-        $this->validate($request,[
+        $this->validate($request, [
             'name' => 'required|max:50',
             'password' => 'nullable|confirmed|min:6',
         ]);
@@ -76,7 +80,7 @@ class UsersController extends Controller
 
         $data = [];
         $data['name'] = $request->name;
-        if ($request->password){
+        if ($request->password) {
             $data['password'] = bcrypt($request->password);
         }
         $user->update($data);
@@ -110,9 +114,9 @@ class UsersController extends Controller
 
     public function confirmEmail($token)
     {
-        try{
+        try {
             $user = User::where('activation_token', $token)->firstOrFail();
-        } catch (\Exception $e){
+        } catch (\Exception $e) {
             abort(500, '邮件激活已失效或帐号已激活！');
         }
 
@@ -123,6 +127,6 @@ class UsersController extends Controller
 
         Auth::login($user);
         session()->flash('success', '恭喜您，激活成功！');
-        return redirect()->route('users.show',[$user]);
+        return redirect()->route('users.show', [$user]);
     }
 }
